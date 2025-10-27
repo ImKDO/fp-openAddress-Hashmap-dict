@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        ocaml-compiler:
+          - 4.14.x
+          - 5.2.x
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only --with-test
+
+      - name: Build
+        run: opam exec -- dune build
+
+      - name: Run tests
+        run: opam exec -- dune test
+
+      - name: Check formatting (OCaml >= 5.0 only)
+        if: matrix.ocaml-compiler == '5.2.x' && matrix.os == 'ubuntu-latest'
+        run: |
+          opam install ocamlformat -y
+          opam exec -- dune build @fmt
+
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2.x
+          dune-cache: true
+
+      - name: Install dependencies with bisect_ppx
+        run: |
+          opam install . --deps-only --with-test
+          opam install bisect_ppx -y
+
+      - name: Build with coverage
+        run: opam exec -- dune build --instrument-with bisect_ppx
+
+      - name: Run tests with coverage
+        run: opam exec -- dune test --instrument-with bisect_ppx
+
+      - name: Generate coverage report
+        run: |
+          opam exec -- bisect-ppx-report html
+          opam exec -- bisect-ppx-report summary
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: _coverage/

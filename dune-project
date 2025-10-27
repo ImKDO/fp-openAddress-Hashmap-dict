@@ -17,10 +17,13 @@
 
 (package
  (name fp-openAddress-Hashmap-dict)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml)
+ (synopsis "Open addressing hashmap implementation in OCaml")
+ (description "A functional implementation of a dictionary using open addressing hash table")
+ (depends 
+  ocaml
+  dune
+  (alcotest :with-test))
  (tags
-  ("add topics" "to describe" your project)))
+  ("hashmap" "dictionary" "functional" "data-structures")))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
